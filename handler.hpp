@@ -1,7 +1,6 @@
 #include <osmium/handler.hpp>
 #include <osmium/io/pbf_input.hpp>
 #include <osmium/visitor.hpp>
-#include <leveldb/db.h>
 #include <osmium/osm/item_type.hpp>
 #include <string>
 #include <vector>
@@ -14,8 +13,11 @@ using namespace std;
 class Handler : public osmium::handler::Handler {
   public:
     Handler() {
+
     }
 
+
+/*
     void relation(const osmium::Relation& relation) {
       auto const& tags = relation.tags();
       const char * relationType = tags.get_value_by_key("type");
@@ -48,7 +50,7 @@ class Handler : public osmium::handler::Handler {
         //cout << relationBuffer.GetString() << endl;
       }
     }
-
+*/
     void node(const osmium::Node& node) {
       auto const& tags = node.tags();
       double lon = node.location().lon();
