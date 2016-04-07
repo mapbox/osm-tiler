@@ -7,11 +7,13 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 #include <cmath>
+#include <fstream>
 
 using namespace rapidjson;
 using namespace std;
 
 static const auto decimal_to_radian = M_PI / 180;
+static const string output_directory = "output";
 
 struct TileFraction {
   double x;
@@ -35,9 +37,15 @@ class Handler : public osmium::handler::Handler {
       return tileFraction;
     }
 
-    std::string quadKeyStringForLocation(const osmium::Location location, const uint z) {
+    string quadKeyStringForLocation(const osmium::Location location, const uint z) {
       auto tileFraction = this->tileFractionFromLocation(location, z);
-      return std::to_string(tileFraction.x) + "/" + std::to_string(tileFraction.y) + "/" + std::to_string(tileFraction.z);
+      return to_string(tileFraction.x) + "/" + to_string(tileFraction.y) + "/" + to_string(tileFraction.z);
+    }
+
+    void commitToFile(const string &fileName, const StringBuffer &nodeBuffer) {
+      ofstream outfile;
+      outfile.open("test.dat", ios::out | ios::app);
+      outfile << nodeBuffer.GetString();
     }
 
     void node(const osmium::Node& node) {
@@ -45,7 +53,6 @@ class Handler : public osmium::handler::Handler {
       double lon = node.location().lon();
       double lat = node.location().lat();
 
-      auto quadKey = this->quadKeyStringForLocation(node.location(), 1);
 
       StringBuffer nodeBuffer;
       Writer<StringBuffer> nodeWriter(nodeBuffer);
@@ -73,6 +80,10 @@ class Handler : public osmium::handler::Handler {
       nodeWriter.EndArray();
       nodeWriter.EndObject();
       nodeWriter.EndObject();
+
+      auto quadKey = this->quadKeyStringForLocation(node.location(), 1);
+
+      this->commitToFile(quadKey, nodeBuffer);
 
       //cout << nodeBuffer.GetString()  << endl;
     }
