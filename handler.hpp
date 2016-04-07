@@ -13,8 +13,7 @@ using namespace std;
 
 class Handler : public osmium::handler::Handler {
   public:
-    Handler(leveldb::DB* ndb) {
-      this->nodeDb = ndb;
+    Handler() {
     }
 
     void relation(const osmium::Relation& relation) {
@@ -55,12 +54,6 @@ class Handler : public osmium::handler::Handler {
       double lon = node.location().lon();
       double lat = node.location().lat();
 
-      this->nodeDb->Put(
-        leveldb::WriteOptions(),
-        to_string(node.id()),
-        "["+to_string(lon)+","+to_string(lat)+"]"
-      );
-
       StringBuffer nodeBuffer;
       Writer<StringBuffer> nodeWriter(nodeBuffer);
 
@@ -91,43 +84,40 @@ class Handler : public osmium::handler::Handler {
       //cout << nodeBuffer.GetString()  << endl;
     }
 
-    void way(const osmium::Way& way) {
-      auto const& tags = way.tags();
+    // void way(const osmium::Way& way) {
+    //   auto const& tags = way.tags();
 
-      StringBuffer wayBuffer;
-      Writer<StringBuffer> wayWriter(wayBuffer);
+    //   StringBuffer wayBuffer;
+    //   Writer<StringBuffer> wayWriter(wayBuffer);
 
-      wayWriter.StartObject();
-      wayWriter.Key("type");
-      wayWriter.String("Feature");
-      wayWriter.Key("properties");
-      wayWriter.StartObject();
-      wayWriter.Key("id");
-      wayWriter.String(to_string(way.id()));
-      for (auto& tag : tags) {
-        wayWriter.Key(tag.key());
-        wayWriter.String(tag.value());
-      }
-      wayWriter.EndObject();
-      wayWriter.Key("geometry");
-      wayWriter.StartObject();
-      wayWriter.Key("type");
-      wayWriter.String("Polygon");
-      wayWriter.Key("coordinates");
-      wayWriter.StartArray();
-      for (auto& node : way.nodes()) {
-        //string id = to_string(node.ref());
+    //   wayWriter.StartObject();
+    //   wayWriter.Key("type");
+    //   wayWriter.String("Feature");
+    //   wayWriter.Key("properties");
+    //   wayWriter.StartObject();
+    //   wayWriter.Key("id");
+    //   wayWriter.String(to_string(way.id()));
+    //   for (auto& tag : tags) {
+    //     wayWriter.Key(tag.key());
+    //     wayWriter.String(tag.value());
+    //   }
+    //   wayWriter.EndObject();
+    //   wayWriter.Key("geometry");
+    //   wayWriter.StartObject();
+    //   wayWriter.Key("type");
+    //   wayWriter.String("Polygon");
+    //   wayWriter.Key("coordinates");
+    //   wayWriter.StartArray();
+    //   for (auto& node : way.nodes()) {
+    //     //string id = to_string(node.ref());
 
-        //wayWriter.StartArray();
-        //wayWriter.Double(lon);
-        //wayWriter.Double(lat);
-        //wayWriter.EndArray();
-      }
-      wayWriter.EndArray();
-      wayWriter.EndObject();
-      wayWriter.EndObject();
-    }
-
-  private:
-    leveldb::DB* nodeDb;
+    //     //wayWriter.StartArray();
+    //     //wayWriter.Double(lon);
+    //     //wayWriter.Double(lat);
+    //     //wayWriter.EndArray();
+    //   }
+    //   wayWriter.EndArray();
+    //   wayWriter.EndObject();
+    //   wayWriter.EndObject();
+    // }
 };

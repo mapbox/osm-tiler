@@ -6,16 +6,16 @@
 #include <osmium/visitor.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <osmium/io/pbf_input.hpp>
-#include <leveldb/db.h>
+// #include "leveldb/db.h"
 #include "handler.hpp"
 
-leveldb::DB* makeDb(std::string path) {
-  leveldb::DB* db;
-  leveldb::Options options;
-  options.create_if_missing = true;
-  leveldb::Status status = leveldb::DB::Open(options, path, &db);
-  return db;
-}
+// leveldb::DB* makeDb(std::string path) {
+//   leveldb::DB* db;
+//   leveldb::Options options;
+//   options.create_if_missing = true;
+//   leveldb::Status status = leveldb::DB::Open(options, path, &db);
+//   return db;
+// }
 
 int main(int argc, char** argv) {
   std::vector<std::string> args;
@@ -33,13 +33,13 @@ int main(int argc, char** argv) {
     std::string filename = args[0];
 
     // Initialize the node cache
-    leveldb::DB* nodeDb = makeDb("./node-cache");
+    // leveldb::DB* nodeDb = makeDb("./node-cache");
 
     osmium::io::Reader reader(
       filename,
       osmium::osm_entity_bits::relation | osmium::osm_entity_bits::node | osmium::osm_entity_bits::way
     );
-    Handler handler(nodeDb);
+    Handler handler();
     osmium::apply(reader, handler);
     reader.close();
 
