@@ -1,0 +1,1 @@
+g++ splitter.cpp -o splitter.o -I include -std=c++11 -lz -lpthread -lleveldb; ./splitter.o chs.osm.pbf;
