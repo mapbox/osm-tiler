@@ -35,3 +35,4 @@ node_modules
 .pbf
 .osm
 osm-split
+node-cache
