@@ -1,7 +1,33 @@
 # osm-split
 experimental osm pbf tiler for efficiently breaking planet files into small chunks
 
+### Test
+
+The following command will download necessary sample files, rebuild the binary, and run osm-split against an OSM extract.
+
+```sh
+make test
+```
+
+### Dependencies
+
+osm-split depends on [Boost](http://www.boost.org/). Install it for your platform before compiling.
+
+#### OSX
+
+```sh
+brew install boost
+```
+
+#### Debian
+
+```sh
+apt-get install libboost-all-dev
+```
+
 ### Download
+
+Downloads a small metro extract for testing osm-split
 
 ```sh
 make chs.osm.pbf
@@ -9,17 +35,15 @@ make chs.osm.pbf
 
 ### Build
 
+Compiles the osm-split binary.
+
 ```sh
 make osm-split
 ```
 
-### Test
-
-```sh
-make test
-```
-
 ### Clean
+
+Deletes the osm-split binary.
 
 ```sh
 make clean
