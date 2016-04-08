@@ -9,6 +9,22 @@ The following command will download necessary sample files, rebuild the binary, 
 make test
 ```
 
+### Dependencies
+
+osm-split depends on [Boost](http://www.boost.org/). Install it for your platform before compiling.
+
+#### OSX
+
+```sh
+brew install boost
+```
+
+#### Debian
+
+```sh
+apt-get install libboost-all-dev
+```
+
 ### Download
 
 Downloads a small metro extract for testing osm-split

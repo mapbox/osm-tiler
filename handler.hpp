@@ -16,50 +16,58 @@ using namespace std;
 static const auto decimal_to_radian = M_PI / 180;
 static const string output_directory = "output";
 
-struct TileFraction {
-  double x;
-  double y;
+struct Tile {
+  uint x;
+  uint y;
   uint z;
 };
 
 class Handler : public osmium::handler::Handler {
-  public:
-    Handler() {}
+  bool geojson;
+  bool pbf;
+  uint z;
 
-    TileFraction tileFractionFromLocation(const osmium::Location location, const uint z) {
-      auto tileFraction = TileFraction();
+  public:
+    Handler(bool createGeojson, bool createPbf, uint tileZ) {
+      geojson = createGeojson;
+      pbf = createPbf;
+      z = tileZ;
+    }
+
+    Tile tileFromLocation(const osmium::Location location, const uint z) {
+      auto tile = Tile();
 
       auto latSin = sin(location.lat() * decimal_to_radian);
       auto z2 = pow(2, z);
-      tileFraction.x = floor(z2 * (location.lon() / 360 + 0.5));
-      tileFraction.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
-      tileFraction.z = z;
+      tile.x = floor(z2 * (location.lon() / 360 + 0.5));
+      tile.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
+      tile.z = z;
       
-      return tileFraction;
+      return tile;
     }
 
     string quadKeyStringForLocation(const osmium::Location location, const uint z) {
-      auto tileFraction = this->tileFractionFromLocation(location, z);
-      return to_string(tileFraction.x) + "" + to_string(tileFraction.y) + "/" + to_string(tileFraction.z);
+      auto tile = this->tileFromLocation(location, z);
+      return to_string(tile.x) + "" + to_string(tile.y) + "/" + to_string(tile.z);
     }
 
-    int makeDirectoryForTileFraction(const TileFraction &tileFraction) {
+    int makeDirectoryForTile(const Tile &tile) {
       string curPath = "output";
       mkdir( curPath.c_str(), 0777); 
 
-      curPath += "/" +  to_string(tileFraction.x);
+      curPath += "/" +  to_string(tile.x);
       mkdir( curPath.c_str(), 0777); 
       
-      curPath += "/" +  to_string(tileFraction.y);
+      curPath += "/" +  to_string(tile.y);
       mkdir( curPath.c_str(), 0777); 
 
       return true;
     }
 
-    void commitToFile(const TileFraction &tileFraction, const StringBuffer &nodeBuffer) {
-      string filename = to_string(tileFraction.z);
-      string path = to_string(tileFraction.x) + "/" + to_string(tileFraction.y) + "/";
-      cout << path + "\n";
+    void commitToFile(const Tile &tile, const StringBuffer &nodeBuffer) {
+      string filename = to_string(tile.z);
+      string path = to_string(tile.x) + "/" + to_string(tile.y) + "/";
+      //cout << path + "\n";
       // ofstream outfile;
       // outfile.open("nodes.json", ios::out | ios::app);
       // outfile << nodeBuffer.GetString();
@@ -96,13 +104,121 @@ class Handler : public osmium::handler::Handler {
       nodeWriter.EndArray();
       nodeWriter.EndObject();
       nodeWriter.EndObject();
+
       return nodeBuffer;
     }
 
     void node(const osmium::Node& node, const int z = 1) {
-      StringBuffer nodeBuffer = this->stringBufferForNode(node, z);
-      auto tileFraction = this->tileFractionFromLocation(node.location(), z);
-      this->makeDirectoryForTileFraction(tileFraction);
-      this->commitToFile(tileFraction, nodeBuffer);
+      if(geojson) {
+        StringBuffer nodeBuffer = this->stringBufferForNode(node, z);
+        auto tile = this->tileFromLocation(node.location(), z);
+        this->makeDirectoryForTile(tile);
+        this->commitToFile(tile, nodeBuffer);
+      }
+    }
+
+    void way(osmium::Way& way) {
+      if(geojson) {
+        auto const& tags = way.tags();
+
+        bool polygon;
+        const char * area = tags.get_value_by_key("area");
+        const char * highway = tags.get_value_by_key("highway");
+        const char * building = tags.get_value_by_key("building");
+
+        // is way a polygon or a linestring?
+        if(area && strcmp(area, "yes") == 1) polygon = true;
+        else if (area && strcmp(area, "yes") == 0) polygon = false;
+        else if(building) polygon = true;
+        else if(highway) polygon = false;
+        else if (way.is_closed()) polygon = true;
+        else polygon = false;
+
+        StringBuffer wayBuffer;
+        Writer<StringBuffer> wayWriter(wayBuffer);
+
+        wayWriter.StartObject();
+        wayWriter.Key("type");
+        wayWriter.String("Feature");
+        wayWriter.Key("properties");
+        wayWriter.StartObject();
+        wayWriter.Key("id");
+        wayWriter.String(to_string(way.id()));
+        for (auto& tag : tags) {
+          wayWriter.Key(tag.key());
+          wayWriter.String(tag.value());
+        }
+        wayWriter.EndObject();
+        wayWriter.Key("geometry");
+        wayWriter.StartObject();
+        wayWriter.Key("type");
+        if(polygon) {
+          wayWriter.String("Polygon");
+        } else {
+          wayWriter.String("LineString");
+        }
+        wayWriter.Key("coordinates");
+        wayWriter.StartArray();
+        if(polygon) {
+          wayWriter.StartArray();
+        }
+        for (auto& node : way.nodes()) {
+          auto location = node.location();
+          if(location) {
+            wayWriter.StartArray();
+            wayWriter.Double(node.location().lon());
+            wayWriter.Double(node.location().lat());
+            wayWriter.EndArray();
+          } else {
+            // ignore ways that are missing nodes
+            return;
+          }
+        }
+        if(polygon) {
+          wayWriter.EndArray();
+        }
+        wayWriter.EndArray();
+        wayWriter.EndObject();
+        wayWriter.EndObject();
+
+        //cout << wayBuffer.GetString() << endl;
+      }
+    }
+
+    void relation(const osmium::Relation& relation) {
+      if(geojson) {
+        auto const& tags = relation.tags();
+        const char * relationType = tags.get_value_by_key("type");
+        const char * restrictionType = tags.get_value_by_key("restriction");
+
+        StringBuffer relationBuffer;
+        Writer<StringBuffer> relationWriter(relationBuffer);
+
+        if (relationType && strcmp(relationType, "restriction") == 0 && (!restrictionType || strcmp(restrictionType, "no_u_turn") != 0)) {
+          relationWriter.StartObject();
+          relationWriter.String("type");
+          if (restrictionType) {
+            relationWriter.String(string(restrictionType));
+          } else {
+            return;
+          }
+          relationWriter.String("members");
+          relationWriter.StartArray();
+          for (auto& rm : relation.members()) {
+            relationWriter.StartObject();
+            relationWriter.String("role");
+            relationWriter.String(string(rm.role()));
+            relationWriter.String("type");
+            relationWriter.String(string(osmium::item_type_to_name(rm.type())));
+            relationWriter.String("ref");
+            relationWriter.String(to_string(rm.ref()));
+            relationWriter.EndObject();
+          }
+          relationWriter.EndArray();
+          relationWriter.EndObject();
+
+          //cout << relationBuffer.GetString() << endl;
+        }
+      }
     }
 };
