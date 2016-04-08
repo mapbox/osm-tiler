@@ -30,8 +30,8 @@ class Handler : public osmium::handler::Handler {
 
       auto latSin = sin(location.lat() * decimal_to_radian);
       auto z2 = pow(2, z);
-      tileFraction.x = z2 * (location.lon() / 360 + 0.5);
-      tileFraction.y = z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI);
+      tileFraction.x = floor(z2 * (location.lon() / 360 + 0.5));
+      tileFraction.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
       tileFraction.z = z;
       
       return tileFraction;
