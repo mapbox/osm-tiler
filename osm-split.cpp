@@ -24,11 +24,11 @@ int main(int argc, char** argv) {
   char cacheFile[] = "node-cache";
 
   try {
-    options_description desc("usage:  osm-split [options] <file>");
+    options_description desc("\nusage:  osm-split [options] <file>");
 
     desc.add_options()
-    ("help,h", "")
-    ("version,v", "")
+    ("help,h", "show help")
+    ("version,v", "show version number")
     ("zoom,z", "zoom level of tiles")
     ("pbf,p", "output tiled osm.pbf files")
     ("geojson,g", "output tiled line-delimitted geojson files");
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
     if(vm.count("help")) {
       cout << desc;
-    }if(vm.count("version")) {
+    } else if(vm.count("version")) {
       cout << VERSION;
     } else {
       bool geojson = false;
