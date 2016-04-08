@@ -124,4 +124,41 @@ class Handler : public osmium::handler::Handler {
         cout << wayBuffer.GetString() << endl;
       }
     }
+
+    void relation(const osmium::Relation& relation) {
+      if(geojson) {
+        auto const& tags = relation.tags();
+        const char * relationType = tags.get_value_by_key("type");
+        const char * restrictionType = tags.get_value_by_key("restriction");
+
+        StringBuffer relationBuffer;
+        Writer<StringBuffer> relationWriter(relationBuffer);
+
+        if (relationType && strcmp(relationType, "restriction") == 0 && (!restrictionType || strcmp(restrictionType, "no_u_turn") != 0)) {
+          relationWriter.StartObject();
+          relationWriter.String("type");
+          if (restrictionType) {
+            relationWriter.String(string(restrictionType));
+          } else {
+            return;
+          }
+          relationWriter.String("members");
+          relationWriter.StartArray();
+          for (auto& rm : relation.members()) {
+            relationWriter.StartObject();
+            relationWriter.String("role");
+            relationWriter.String(string(rm.role()));
+            relationWriter.String("type");
+            relationWriter.String(string(osmium::item_type_to_name(rm.type())));
+            relationWriter.String("ref");
+            relationWriter.String(to_string(rm.ref()));
+            relationWriter.EndObject();
+          }
+          relationWriter.EndArray();
+          relationWriter.EndObject();
+
+          cout << relationBuffer.GetString() << endl;
+        }
+      }
+    }
 };
