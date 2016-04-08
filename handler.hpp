@@ -48,4 +48,70 @@ class Handler : public osmium::handler::Handler {
 
       //cout << nodeBuffer.GetString()  << endl;
     }
+
+    void way(osmium::Way& way) {
+      auto const& tags = way.tags();
+
+      bool polygon;
+      const char * area = tags.get_value_by_key("area");
+      const char * highway = tags.get_value_by_key("highway");
+      const char * building = tags.get_value_by_key("building");
+
+      // is way a polygon or a linestring?
+      if(area && strcmp(area, "yes") == 1) polygon = true;
+      else if (area && strcmp(area, "yes") == 0) polygon = false;
+      else if(building) polygon = true;
+      else if(highway) polygon = false;
+      else if (way.is_closed()) polygon = true;
+      else polygon = false;
+
+      StringBuffer wayBuffer;
+      Writer<StringBuffer> wayWriter(wayBuffer);
+
+      wayWriter.StartObject();
+      wayWriter.Key("type");
+      wayWriter.String("Feature");
+      wayWriter.Key("properties");
+      wayWriter.StartObject();
+      wayWriter.Key("id");
+      wayWriter.String(to_string(way.id()));
+      for (auto& tag : tags) {
+        wayWriter.Key(tag.key());
+        wayWriter.String(tag.value());
+      }
+      wayWriter.EndObject();
+      wayWriter.Key("geometry");
+      wayWriter.StartObject();
+      wayWriter.Key("type");
+      if(polygon) {
+        wayWriter.String("Polygon");
+      } else {
+        wayWriter.String("LineString");
+      }
+      wayWriter.Key("coordinates");
+      wayWriter.StartArray();
+      if(polygon) {
+        wayWriter.StartArray();
+      }
+      for (auto& node : way.nodes()) {
+        auto location = node.location();
+        if(location) {
+          wayWriter.StartArray();
+          wayWriter.Double(node.location().lon());
+          wayWriter.Double(node.location().lat());
+          wayWriter.EndArray();
+        } else {
+          // ignore ways that are missing nodes
+          return;
+        }
+      }
+      if(polygon) {
+        wayWriter.EndArray();
+      }
+      wayWriter.EndArray();
+      wayWriter.EndObject();
+      wayWriter.EndObject();
+
+      //cout << wayBuffer.GetString() << endl;
+    }
 };
