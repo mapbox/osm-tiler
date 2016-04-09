@@ -34,7 +34,7 @@ class Handler : public osmium::handler::Handler {
       z = tileZ;
     }
 
-    Tile tileFromLocation(const osmium::Location location, const uint z) {
+    Tile tileFromLocation(const osmium::Location location) {
       auto tile = Tile();
 
       auto latSin = sin(location.lat() * decimal_to_radian);
@@ -42,12 +42,12 @@ class Handler : public osmium::handler::Handler {
       tile.x = floor(z2 * (location.lon() / 360 + 0.5));
       tile.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
       tile.z = z;
-      
+
       return tile;
     }
 
-    string quadKeyStringForLocation(const osmium::Location location, const uint z) {
-      auto tile = this->tileFromLocation(location, z);
+    string quadKeyStringForLocation(const osmium::Location location) {
+      auto tile = this->tileFromLocation(location);
       return to_string(tile.x) + "" + to_string(tile.y) + "/" + to_string(tile.z);
     }
 
@@ -67,10 +67,6 @@ class Handler : public osmium::handler::Handler {
     void commitToFile(const Tile &tile, const StringBuffer &nodeBuffer) {
       string filename = to_string(tile.z);
       string path = to_string(tile.x) + "/" + to_string(tile.y) + "/";
-      //cout << path + "\n";
-      // ofstream outfile;
-      // outfile.open("nodes.json", ios::out | ios::app);
-      // outfile << nodeBuffer.GetString();
     }
 
     StringBuffer stringBufferForNode(const osmium::Node& node, const int z = 1) {
@@ -108,10 +104,10 @@ class Handler : public osmium::handler::Handler {
       return nodeBuffer;
     }
 
-    void node(const osmium::Node& node, const int z = 1) {
+    void node(const osmium::Node& node) {
       if(geojson) {
-        StringBuffer nodeBuffer = this->stringBufferForNode(node, z);
-        auto tile = this->tileFromLocation(node.location(), z);
+        StringBuffer nodeBuffer = this->stringBufferForNode(node);
+        auto tile = this->tileFromLocation(node.location());
         this->makeDirectoryForTile(tile);
         this->commitToFile(tile, nodeBuffer);
       }

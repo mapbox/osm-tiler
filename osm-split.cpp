@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     desc.add_options()
     ("help,h", "show help")
     ("version,v", "show version number")
-    ("zoom,z", "zoom level of tiles")
+    ("zoom,z", value<uint>(), "zoom level of tiles")
     ("pbf,p", "output tiled osm.pbf files")
     ("geojson,g", "output tiled line-delimitted geojson files");
 
@@ -47,9 +47,7 @@ int main(int argc, char** argv) {
 
       if(vm.count("geojson")) geojson = true;
       if(vm.count("pbf")) pbf = true;
-      if(vm.count("zoom")) zoom = 7;//vm["zoom"].as<uint>();
-      
-      cout << vm["zoom"] << endl;
+      if(vm.count("zoom")) zoom = vm["zoom"].as<uint>();
 
       std::string filename = argv[1];
 
