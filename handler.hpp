@@ -9,6 +9,7 @@
 #include <cmath>
 #include <fstream>
 #include <sys/stat.h>
+#include "boost/filesystem.hpp"
 
 using namespace rapidjson;
 using namespace std;
