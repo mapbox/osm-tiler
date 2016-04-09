@@ -13,4 +13,4 @@ node-cache:
 	touch node-cache;
 
 clean:
-	rm -f osm-split node-cache;
+	rm -f osm-split node-cache; rm -rf output; mkdir output;

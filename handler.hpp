@@ -8,11 +8,13 @@
 #include "rapidjson/stringbuffer.h"
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <sys/stat.h>
 #include "boost/filesystem.hpp"
 
 using namespace rapidjson;
 using namespace std;
+//using boost::filesystem; 
 
 static const auto decimal_to_radian = M_PI / 180;
 static const string output_directory = "output";
@@ -57,7 +59,7 @@ class Handler : public osmium::handler::Handler {
       mkdir( curPath.c_str(), 0777); 
 
       curPath += "/" +  to_string(tile.x);
-      mkdir( curPath.c_str(), 0777); 
+      mkdir( curPath.c_str(), 0777);
       
       curPath += "/" +  to_string(tile.y);
       mkdir( curPath.c_str(), 0777); 
@@ -66,8 +68,13 @@ class Handler : public osmium::handler::Handler {
     }
 
     void commitToFile(const Tile &tile, const StringBuffer &nodeBuffer) {
-      string filename = to_string(tile.z);
-      string path = to_string(tile.x) + "/" + to_string(tile.y) + "/";
+      string filename = "nodes.json";
+      string path = output_directory + "/" + to_string(tile.x) + "/" + to_string(tile.y) + "/" + filename;
+
+      ofstream myfile;
+      myfile.open(path, ios::app);
+      myfile << nodeBuffer.GetString() << endl;
+      myfile.close();
     }
 
     StringBuffer stringBufferForNode(const osmium::Node& node, const int z = 1) {
