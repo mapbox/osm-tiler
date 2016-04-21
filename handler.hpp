@@ -6,54 +6,118 @@
 #include <vector>
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <sys/stat.h>
+#include "boost/filesystem.hpp"
 
 using namespace rapidjson;
 using namespace std;
+//using boost::filesystem; 
+
+static const auto decimal_to_radian = M_PI / 180;
+static const string output_directory = "output";
+
+struct Tile {
+  uint x;
+  uint y;
+  uint z;
+};
 
 class Handler : public osmium::handler::Handler {
   bool geojson;
   bool pbf;
+  uint z;
 
   public:
-    Handler(bool createGeojson, bool createPbf) {
+    Handler(bool createGeojson, bool createPbf, uint tileZ) {
       geojson = createGeojson;
       pbf = createPbf;
+      z = tileZ;
     }
 
-    void node(const osmium::Node& node) {
+    Tile tileFromLocation(const osmium::Location location) {
+      auto tile = Tile();
+
+      auto latSin = sin(location.lat() * decimal_to_radian);
+      auto z2 = pow(2, z);
+      tile.x = floor(z2 * (location.lon() / 360 + 0.5));
+      tile.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
+      tile.z = z;
+
+      return tile;
+    }
+
+    string quadKeyStringForLocation(const osmium::Location location) {
+      auto tile = this->tileFromLocation(location);
+      return to_string(tile.x) + "" + to_string(tile.y) + "/" + to_string(tile.z);
+    }
+
+    int makeDirectoryForTile(const Tile &tile) {
+      string curPath = "output";
+      mkdir( curPath.c_str(), 0777); 
+
+      curPath += "/" +  to_string(tile.x);
+      mkdir( curPath.c_str(), 0777);
+      
+      curPath += "/" +  to_string(tile.y);
+      mkdir( curPath.c_str(), 0777); 
+
+      return true;
+    }
+
+    void commitToFile(const Tile &tile, const StringBuffer &nodeBuffer) {
+      string filename = "nodes.json";
+      string path = output_directory + "/" + to_string(tile.x) + "/" + to_string(tile.y) + "/" + filename;
+
+      ofstream myfile;
+      myfile.open(path, ios::app);
+      myfile << nodeBuffer.GetString() << endl;
+      myfile.close();
+    }
+
+    StringBuffer stringBufferForNode(const osmium::Node& node, const int z = 1) {
       auto const& tags = node.tags();
       double lon = node.location().lon();
       double lat = node.location().lat();
 
+      StringBuffer nodeBuffer;
+      Writer<StringBuffer> nodeWriter(nodeBuffer);
+
+      nodeWriter.StartObject();
+      nodeWriter.Key("type");
+      nodeWriter.String("Feature");
+      nodeWriter.Key("properties");
+      nodeWriter.StartObject();
+      nodeWriter.Key("id");
+      nodeWriter.String(to_string(node.id()));
+      for (auto& tag : tags) {
+        nodeWriter.Key(tag.key());
+        nodeWriter.String(tag.value());
+      }
+      nodeWriter.EndObject();
+      nodeWriter.Key("geometry");
+      nodeWriter.StartObject();
+      nodeWriter.Key("type");
+      nodeWriter.String("Point");
+      nodeWriter.Key("coordinates");
+      nodeWriter.StartArray();
+      nodeWriter.Double(lon);
+      nodeWriter.Double(lat);
+      nodeWriter.EndArray();
+      nodeWriter.EndObject();
+      nodeWriter.EndObject();
+
+      return nodeBuffer;
+    }
+
+    void node(const osmium::Node& node) {
       if(geojson) {
-        StringBuffer nodeBuffer;
-        Writer<StringBuffer> nodeWriter(nodeBuffer);
-
-        nodeWriter.StartObject();
-        nodeWriter.Key("type");
-        nodeWriter.String("Feature");
-        nodeWriter.Key("properties");
-        nodeWriter.StartObject();
-        nodeWriter.Key("id");
-        nodeWriter.String(to_string(node.id()));
-        for (auto& tag : tags) {
-          nodeWriter.Key(tag.key());
-          nodeWriter.String(tag.value());
-        }
-        nodeWriter.EndObject();
-        nodeWriter.Key("geometry");
-        nodeWriter.StartObject();
-        nodeWriter.Key("type");
-        nodeWriter.String("Point");
-        nodeWriter.Key("coordinates");
-        nodeWriter.StartArray();
-        nodeWriter.Double(lon);
-        nodeWriter.Double(lat);
-        nodeWriter.EndArray();
-        nodeWriter.EndObject();
-        nodeWriter.EndObject();
-
-        cout << nodeBuffer.GetString()  << endl;
+        StringBuffer nodeBuffer = this->stringBufferForNode(node);
+        auto tile = this->tileFromLocation(node.location());
+        this->makeDirectoryForTile(tile);
+        this->commitToFile(tile, nodeBuffer);
       }
     }
 
@@ -121,7 +185,7 @@ class Handler : public osmium::handler::Handler {
         wayWriter.EndObject();
         wayWriter.EndObject();
 
-        cout << wayBuffer.GetString() << endl;
+        //cout << wayBuffer.GetString() << endl;
       }
     }
 
@@ -157,7 +221,7 @@ class Handler : public osmium::handler::Handler {
           relationWriter.EndArray();
           relationWriter.EndObject();
 
-          cout << relationBuffer.GetString() << endl;
+          //cout << relationBuffer.GetString() << endl;
         }
       }
     }
