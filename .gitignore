@@ -36,3 +36,6 @@ node_modules
 *.pbf
 osm-split
 node-cache
+
+.mason/
+mason_packages/

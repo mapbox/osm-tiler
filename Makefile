@@ -1,7 +1,7 @@
 CXX := $(CXX)
 
 osm-split: clean
-	g++ osm-split.cpp -o osm-split -I include -std=c++11 -lz -lpthread -lboost_program_options -lboost_filesystem -lboost_system;
+	. ./bootstrap.sh && g++ osm-split.cpp -o osm-split -std=c++11 -lpthread;
 
 chs.osm.pbf:
 	curl https://s3.amazonaws.com/metro-extracts.mapzen.com/charleston_south-carolina.osm.pbf -o chs.osm.pbf
