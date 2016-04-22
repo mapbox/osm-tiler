@@ -11,6 +11,8 @@ function all_deps() {
   dep boost 1.59.0 &
   dep libosmium 2.6.1 &
   dep rapidjson 1.0.2 &
+  dep protozero 1.3.0 &
+  dep utfcpp 2.3.4 &
   dep zlib system &
   wait
 }
