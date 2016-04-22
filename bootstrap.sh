@@ -17,8 +17,7 @@ function all_deps() {
   wait
 }
 
-# until https://github.com/mapbox/mason/pull/159 merges...
-MASON_VERSION=libosmium
+MASON_VERSION=061cbd85bc4fbf4cd1ea204ddd4ddfd6d05328ee
 
 function setup_mason() {
   if [[ ! -d ./.mason ]]; then
