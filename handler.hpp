@@ -10,7 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
-#include "boost/filesystem.hpp"
+#include <boost/filesystem.hpp>
 
 using namespace rapidjson;
 using namespace std;
@@ -77,7 +77,7 @@ class Handler : public osmium::handler::Handler {
       myfile.close();
     }
 
-    StringBuffer stringBufferForNode(const osmium::Node& node, const int z = 1) {
+    StringBuffer stringBufferForNode(const osmium::Node& node) {
       auto const& tags = node.tags();
       double lon = node.location().lon();
       double lat = node.location().lat();
