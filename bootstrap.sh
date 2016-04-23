@@ -9,6 +9,7 @@ function dep() {
 
 function all_deps() {
   dep boost 1.59.0 &
+  dep boost_liball 1.59.0 &
   dep libosmium 2.6.1 &
   dep rapidjson 1.0.2 &
   dep protozero 1.3.0 &
