@@ -29,9 +29,7 @@ int main(int argc, char** argv) {
     desc.add_options()
     ("help,h", "show help")
     ("version,v", "show version number")
-    ("zoom,z", value<uint>(), "zoom level of tiles")
-    ("pbf,p", "output tiled osm.pbf files")
-    ("geojson,g", "output tiled line-delimitted geojson files");
+    ("zoom,z", value<uint>(), "zoom level of tiles");
 
     variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
@@ -41,12 +39,8 @@ int main(int argc, char** argv) {
     } else if(vm.count("version")) {
       cout << VERSION;
     } else {
-      bool geojson = false;
-      bool pbf = false;
       uint zoom = 0;
 
-      if(vm.count("geojson")) geojson = true;
-      if(vm.count("pbf")) pbf = true;
       if(vm.count("zoom")) zoom = vm["zoom"].as<uint>();
 
       std::string filename = argv[1];
@@ -66,7 +60,7 @@ int main(int argc, char** argv) {
       location_handler_type location_handler(index_pos, index_neg);
       location_handler.ignore_errors();
 
-      Handler handler(geojson, pbf, zoom);
+      Handler handler(zoom);
       osmium::apply(reader, location_handler, handler);
       reader.close();
 
