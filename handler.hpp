@@ -11,12 +11,15 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <boost/filesystem.hpp>
+#include <unordered_map>
 
 using namespace rapidjson;
 using namespace std;
 
 static const auto decimal_to_radian = M_PI / 180;
 static const string output_directory = "output";
+
+typedef vector<string> TileVector;  
 
 struct Tile {
   uint x;
@@ -26,22 +29,28 @@ struct Tile {
 
 class Handler : public osmium::handler::Handler {
   uint z;
+  unordered_map<int,vector<string>> idx;
 
   public:
     Handler(uint tileZ) {
       z = tileZ;
     }
 
-    Tile tileFromLocation(const osmium::Location location) {
+    Tile pointToTile(const double lon, const double lat) {
       auto tile = Tile();
 
-      auto latSin = sin(location.lat() * decimal_to_radian);
+      auto latSin = sin(lat * decimal_to_radian);
       auto z2 = pow(2, z);
-      tile.x = floor(z2 * (location.lon() / 360 + 0.5));
+      tile.x = floor(z2 * (lon / 360 + 0.5));
       tile.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
       tile.z = z;
 
       return tile;
+    }
+
+    string xy (const double lon, const double lat) {
+      auto tile = pointToTile(lon, lat);
+      return to_string(tile.x) + "/" + to_string(tile.y);
     }
 
     int makeDirectoryForTile(const Tile &tile) {
@@ -62,6 +71,10 @@ class Handler : public osmium::handler::Handler {
       auto lon = node.location().lon();
       auto lat = node.location().lat();
       auto id = node.id();
+      TileVector tiles = {string(xy(lon, lat))};
+
+      pair<int,TileVector> nodeIndex(id, tiles);
+      idx.insert(nodeIndex);
 
       StringBuffer nodeBuffer;
       Writer<StringBuffer> nodeWriter(nodeBuffer);
