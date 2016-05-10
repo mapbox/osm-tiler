@@ -46,7 +46,7 @@ class Handler : public osmium::handler::Handler {
       return to_string(tile.x) + "/" + to_string(tile.y);
     }
 
-    int mkdirTile(const Tile &tile) {
+    void mkdirTile(const Tile &tile) {
       string curPath = "output";
       mkdir(curPath.c_str(), 0777); 
 
@@ -55,8 +55,6 @@ class Handler : public osmium::handler::Handler {
       
       curPath += "/" +  to_string(tile.y);
       mkdir(curPath.c_str(), 0777); 
-
-      return true;
     }
 
     void appendData(const string &tilePath, const string data) {
@@ -68,7 +66,6 @@ class Handler : public osmium::handler::Handler {
       myfile << data << endl;
       myfile.close();
     }
-
 
     void node(const osmium::Node& node) {
       auto const& tags = node.tags();

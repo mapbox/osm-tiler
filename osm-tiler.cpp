@@ -8,7 +8,6 @@
 #include <osmium/io/pbf_input.hpp>
 #include <osmium/index/map/dummy.hpp>
 #include <osmium/index/map/sparse_file_array.hpp>
-#include <osmium/handler/node_locations_for_ways.hpp>
 #include <boost/program_options.hpp>
 #include "handler.hpp"
 
@@ -16,15 +15,9 @@
 
 using namespace boost::program_options;
 
-typedef osmium::index::map::Dummy<osmium::unsigned_object_id_type, osmium::Location> index_neg_type;
-typedef osmium::index::map::SparseFileArray<osmium::unsigned_object_id_type, osmium::Location> index_pos_type;
-typedef osmium::handler::NodeLocationsForWays<index_pos_type, index_neg_type> location_handler_type;
-
 int main(int argc, char** argv) {
-  char cacheFile[] = "node-cache";
-
   try {
-    options_description desc("\nusage:  osm-split [options] <file>");
+    options_description desc("\nusage:  osm-tiler [options] <file>");
 
     desc.add_options()
     ("help,h", "show help")
@@ -50,18 +43,8 @@ int main(int argc, char** argv) {
         osmium::osm_entity_bits::relation | osmium::osm_entity_bits::node | osmium::osm_entity_bits::way
       );
 
-      int fd = open(cacheFile, O_RDWR);
-      if (fd == -1) {
-        std::cerr << "Can not open node cache file '" << cacheFile << "': " << strerror(errno) << "\n";
-        return 1;
-      }
-      index_pos_type index_pos {fd};
-      index_neg_type index_neg;
-      location_handler_type location_handler(index_pos, index_neg);
-      location_handler.ignore_errors();
-
       Handler handler(zoom);
-      osmium::apply(reader, location_handler, handler);
+      osmium::apply(reader, handler);
       reader.close();
 
       return 0;

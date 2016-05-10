@@ -34,7 +34,7 @@ node_modules
 
 *.osm
 *.pbf
-osm-split
+osm-tiler
 node-cache
 
 .mason/
