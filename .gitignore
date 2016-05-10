@@ -39,3 +39,5 @@ node-cache
 
 .mason/
 mason_packages/
+
+output

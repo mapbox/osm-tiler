@@ -3,14 +3,10 @@
 #include <osmium/visitor.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <string>
-#include <vector>
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
-#include <cmath>
-#include <fstream>
-#include <iostream>
-#include <sys/stat.h>
 #include <boost/filesystem.hpp>
+#include <fstream>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -18,7 +14,6 @@ using namespace rapidjson;
 using namespace std;
 
 static const auto decimal_to_radian = M_PI / 180;
-static const string output_directory = "output";
 
 struct Tile {
   uint x;
@@ -64,6 +59,17 @@ class Handler : public osmium::handler::Handler {
       return true;
     }
 
+    void appendData(const string &tilePath, const string data) {
+      string filename = "data.json";
+      string path = "./output/" + tilePath + "/" + filename;
+
+      ofstream myfile;
+      myfile.open(path, ios::app);
+      myfile << data << endl;
+      myfile.close();
+    }
+
+
     void node(const osmium::Node& node) {
       auto const& tags = node.tags();
       auto lon = node.location().lon();
@@ -83,6 +89,8 @@ class Handler : public osmium::handler::Handler {
 
       nodeWriter.StartObject();
 
+      nodeWriter.Key("type");
+      nodeWriter.String("node");
       nodeWriter.Key("id");
       nodeWriter.Int(id);
       nodeWriter.Key("lon");
@@ -105,7 +113,7 @@ class Handler : public osmium::handler::Handler {
       nodeWriter.EndObject();
       nodeWriter.EndObject();
 
-      //cout << nodeBuffer.GetString() << endl;
+      appendData(xy(tile), nodeBuffer.GetString());
     }
 
     void way(const osmium::Way& way) {
@@ -117,6 +125,8 @@ class Handler : public osmium::handler::Handler {
 
       wayWriter.StartObject();
 
+      wayWriter.Key("type");
+      wayWriter.String("way");
       wayWriter.Key("id");
       wayWriter.Int(id);
       wayWriter.Key("version");
@@ -158,7 +168,9 @@ class Handler : public osmium::handler::Handler {
       wayWriter.EndObject();
       wayWriter.EndObject();
 
-      //cout << wayBuffer.GetString() << endl;
+      for (auto& tileXy : tiles) {
+        appendData(tileXy, wayBuffer.GetString());
+      }
     }
 
     void relation(const osmium::Relation& relation) {
@@ -170,6 +182,8 @@ class Handler : public osmium::handler::Handler {
 
       relationWriter.StartObject();
 
+      relationWriter.Key("type");
+      relationWriter.String("relation");
       relationWriter.Key("id");
       relationWriter.Int(id);
       relationWriter.Key("version");
@@ -216,6 +230,8 @@ class Handler : public osmium::handler::Handler {
       relationWriter.EndObject();
       relationWriter.EndObject();
 
-      //cout << relationBuffer.GetString() << endl;
+      for (auto& tileXy : tiles) {
+        appendData(tileXy, relationBuffer.GetString());
+      }
     }
 };
