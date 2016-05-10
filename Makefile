@@ -8,7 +8,7 @@ chs.osm.pbf:
 	curl https://s3.amazonaws.com/metro-extracts.mapzen.com/charleston_south-carolina.osm.pbf -o chs.osm.pbf
 
 test: chs.osm.pbf clean osm-tiler
-	./osm-tiler chs.osm.pbf -z 7;
+	./osm-tiler chs.osm.pbf -z 9;
 
 clean:
 	rm -f osm-tiler; rm -rf output; mkdir output;
