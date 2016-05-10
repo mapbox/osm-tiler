@@ -3,21 +3,17 @@
 #include <osmium/visitor.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <string>
-#include <vector>
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
-#include <cmath>
-#include <fstream>
-#include <iostream>
-#include <sys/stat.h>
 #include <boost/filesystem.hpp>
+#include <fstream>
+#include <unordered_map>
+#include <unordered_set>
 
 using namespace rapidjson;
 using namespace std;
-//using boost::filesystem; 
 
 static const auto decimal_to_radian = M_PI / 180;
-static const string output_directory = "output";
 
 struct Tile {
   uint x;
@@ -26,203 +22,213 @@ struct Tile {
 };
 
 class Handler : public osmium::handler::Handler {
-  bool geojson;
-  bool pbf;
   uint z;
+  unordered_map<int,unordered_set<string>> indices;
 
   public:
-    Handler(bool createGeojson, bool createPbf, uint tileZ) {
-      geojson = createGeojson;
-      pbf = createPbf;
+    Handler(uint tileZ) {
       z = tileZ;
     }
 
-    Tile tileFromLocation(const osmium::Location location) {
+    Tile pointToTile(const double lon, const double lat) {
       auto tile = Tile();
 
-      auto latSin = sin(location.lat() * decimal_to_radian);
+      auto latSin = sin(lat * decimal_to_radian);
       auto z2 = pow(2, z);
-      tile.x = floor(z2 * (location.lon() / 360 + 0.5));
+      tile.x = floor(z2 * (lon / 360 + 0.5));
       tile.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
       tile.z = z;
 
       return tile;
     }
 
-    string quadKeyStringForLocation(const osmium::Location location) {
-      auto tile = this->tileFromLocation(location);
-      return to_string(tile.x) + "" + to_string(tile.y) + "/" + to_string(tile.z);
+    string xy (const Tile tile) {
+      return to_string(tile.x) + "/" + to_string(tile.y);
     }
 
-    int makeDirectoryForTile(const Tile &tile) {
+    void mkdirTile(const Tile &tile) {
       string curPath = "output";
-      mkdir( curPath.c_str(), 0777); 
+      mkdir(curPath.c_str(), 0777); 
 
       curPath += "/" +  to_string(tile.x);
-      mkdir( curPath.c_str(), 0777);
+      mkdir(curPath.c_str(), 0777);
       
       curPath += "/" +  to_string(tile.y);
-      mkdir( curPath.c_str(), 0777); 
-
-      return true;
+      mkdir(curPath.c_str(), 0777); 
     }
 
-    void commitToFile(const Tile &tile, const StringBuffer &nodeBuffer) {
-      string filename = "nodes.json";
-      string path = output_directory + "/" + to_string(tile.x) + "/" + to_string(tile.y) + "/" + filename;
+    void appendData(const string &tilePath, const string data) {
+      string filename = "data.json";
+      string path = "./output/" + tilePath + "/" + filename;
 
       ofstream myfile;
       myfile.open(path, ios::app);
-      myfile << nodeBuffer.GetString() << endl;
+      myfile << data << endl;
       myfile.close();
     }
 
-    StringBuffer stringBufferForNode(const osmium::Node& node) {
+    void node(const osmium::Node& node) {
       auto const& tags = node.tags();
-      double lon = node.location().lon();
-      double lat = node.location().lat();
+      auto lon = node.location().lon();
+      auto lat = node.location().lat();
+      auto id = node.id();
+
+      Tile tile = pointToTile(lon, lat);
+      mkdirTile(tile);
+      unordered_set<string> tiles;
+      tiles.insert(xy(tile));
+      pair<int, unordered_set<string>> nodeIndex(id, tiles);
+
+      indices.insert(nodeIndex);
 
       StringBuffer nodeBuffer;
       Writer<StringBuffer> nodeWriter(nodeBuffer);
 
       nodeWriter.StartObject();
+
       nodeWriter.Key("type");
-      nodeWriter.String("Feature");
-      nodeWriter.Key("properties");
-      nodeWriter.StartObject();
+      nodeWriter.String("node");
       nodeWriter.Key("id");
-      nodeWriter.String(to_string(node.id()));
+      nodeWriter.Int(id);
+      nodeWriter.Key("lon");
+      nodeWriter.Double(lon);
+      nodeWriter.Key("lat");
+      nodeWriter.Double(lat);
+      nodeWriter.Key("version");
+      nodeWriter.Int(node.version());
+      nodeWriter.Key("timestamp");
+      nodeWriter.Int(node.timestamp().seconds_since_epoch());
+      nodeWriter.Key("user");
+      nodeWriter.String(node.user());
+
+      nodeWriter.Key("tags");
+      nodeWriter.StartObject();
       for (auto& tag : tags) {
         nodeWriter.Key(tag.key());
         nodeWriter.String(tag.value());
       }
       nodeWriter.EndObject();
-      nodeWriter.Key("geometry");
-      nodeWriter.StartObject();
-      nodeWriter.Key("type");
-      nodeWriter.String("Point");
-      nodeWriter.Key("coordinates");
-      nodeWriter.StartArray();
-      nodeWriter.Double(lon);
-      nodeWriter.Double(lat);
-      nodeWriter.EndArray();
-      nodeWriter.EndObject();
       nodeWriter.EndObject();
 
-      return nodeBuffer;
+      appendData(xy(tile), nodeBuffer.GetString());
     }
 
-    void node(const osmium::Node& node) {
-      if(geojson) {
-        StringBuffer nodeBuffer = this->stringBufferForNode(node);
-        auto tile = this->tileFromLocation(node.location());
-        this->makeDirectoryForTile(tile);
-        this->commitToFile(tile, nodeBuffer);
-      }
-    }
+    void way(const osmium::Way& way) {
+      auto const& tags = way.tags();
+      auto id = way.id();
 
-    void way(osmium::Way& way) {
-      if(geojson) {
-        auto const& tags = way.tags();
+      StringBuffer wayBuffer;
+      Writer<StringBuffer> wayWriter(wayBuffer);
 
-        bool polygon;
-        const char * area = tags.get_value_by_key("area");
-        const char * highway = tags.get_value_by_key("highway");
-        const char * building = tags.get_value_by_key("building");
+      wayWriter.StartObject();
 
-        // is way a polygon or a linestring?
-        if(area && strcmp(area, "yes") == 1) polygon = true;
-        else if (area && strcmp(area, "yes") == 0) polygon = false;
-        else if(building) polygon = true;
-        else if(highway) polygon = false;
-        else if (way.is_closed()) polygon = true;
-        else polygon = false;
+      wayWriter.Key("type");
+      wayWriter.String("way");
+      wayWriter.Key("id");
+      wayWriter.Int(id);
+      wayWriter.Key("version");
+      wayWriter.Int(way.version());
+      wayWriter.Key("timestamp");
+      wayWriter.Int(way.timestamp().seconds_since_epoch());
+      wayWriter.Key("user");
+      wayWriter.String(way.user());
+      wayWriter.Key("closed");
+      wayWriter.Bool(way.is_closed());
 
-        StringBuffer wayBuffer;
-        Writer<StringBuffer> wayWriter(wayBuffer);
+      wayWriter.Key("node_refs");
+      wayWriter.StartArray();
+      unordered_set<string> tiles;
+      int tileCount = 0;
+      for (auto& node : way.nodes()) {
+        int ref = node.ref();
+        wayWriter.Int(ref);
 
-        wayWriter.StartObject();
-        wayWriter.Key("type");
-        wayWriter.String("Feature");
-        wayWriter.Key("properties");
-        wayWriter.StartObject();
-        wayWriter.Key("id");
-        wayWriter.String(to_string(way.id()));
-        for (auto& tag : tags) {
-          wayWriter.Key(tag.key());
-          wayWriter.String(tag.value());
-        }
-        wayWriter.EndObject();
-        wayWriter.Key("geometry");
-        wayWriter.StartObject();
-        wayWriter.Key("type");
-        if(polygon) {
-          wayWriter.String("Polygon");
-        } else {
-          wayWriter.String("LineString");
-        }
-        wayWriter.Key("coordinates");
-        wayWriter.StartArray();
-        if(polygon) {
-          wayWriter.StartArray();
-        }
-        for (auto& node : way.nodes()) {
-          auto location = node.location();
-          if(location) {
-            wayWriter.StartArray();
-            wayWriter.Double(node.location().lon());
-            wayWriter.Double(node.location().lat());
-            wayWriter.EndArray();
-          } else {
-            // ignore ways that are missing nodes
-            return;
+        if(indices.count(ref)) {
+          auto nodeTiles = indices.at(ref);
+          
+          for (auto& tile : nodeTiles) {
+            tiles.insert(tile);
+            tileCount++;
           }
         }
-        if(polygon) {
-          wayWriter.EndArray();
-        }
-        wayWriter.EndArray();
-        wayWriter.EndObject();
-        wayWriter.EndObject();
+      }
+      pair<int,unordered_set<string>> wayIndex(id, tiles);
+      indices.insert(wayIndex);
+      wayWriter.EndArray();
 
-        //cout << wayBuffer.GetString() << endl;
+      wayWriter.Key("tags");
+      wayWriter.StartObject();
+      for (auto& tag : tags) {
+        wayWriter.Key(tag.key());
+        wayWriter.String(tag.value());
+      }
+      wayWriter.EndObject();
+      wayWriter.EndObject();
+
+      for (auto& tileXy : tiles) {
+        appendData(tileXy, wayBuffer.GetString());
       }
     }
 
     void relation(const osmium::Relation& relation) {
-      if(geojson) {
-        auto const& tags = relation.tags();
-        const char * relationType = tags.get_value_by_key("type");
-        const char * restrictionType = tags.get_value_by_key("restriction");
+      auto const& tags = relation.tags();
+      auto id = relation.id();
 
-        StringBuffer relationBuffer;
-        Writer<StringBuffer> relationWriter(relationBuffer);
+      StringBuffer relationBuffer;
+      Writer<StringBuffer> relationWriter(relationBuffer);
 
-        if (relationType && strcmp(relationType, "restriction") == 0 && (!restrictionType || strcmp(restrictionType, "no_u_turn") != 0)) {
-          relationWriter.StartObject();
-          relationWriter.String("type");
-          if (restrictionType) {
-            relationWriter.String(string(restrictionType));
-          } else {
-            return;
+      relationWriter.StartObject();
+
+      relationWriter.Key("type");
+      relationWriter.String("relation");
+      relationWriter.Key("id");
+      relationWriter.Int(id);
+      relationWriter.Key("version");
+      relationWriter.Int(relation.version());
+      relationWriter.Key("timestamp");
+      relationWriter.Int(relation.timestamp().seconds_since_epoch());
+      relationWriter.Key("user");
+      relationWriter.String(relation.user());
+
+      relationWriter.Key("members");
+      relationWriter.StartArray();
+      unordered_set<string> tiles;
+      int tileCount = 0;
+      for (auto& member : relation.members()) {
+        auto ref = member.ref();
+        relationWriter.StartObject();
+        relationWriter.Key("id");
+        relationWriter.Int(ref);
+        relationWriter.Key("type");
+        relationWriter.String(item_type_to_name(member.type()));
+        relationWriter.Key("role");
+        relationWriter.String(member.role());
+        relationWriter.EndObject();
+
+        if(indices.count(ref)) {
+          auto memberTiles = indices.at(ref);
+          
+          for (auto& tile : memberTiles) {
+            tiles.insert(tile);
+            tileCount++;
           }
-          relationWriter.String("members");
-          relationWriter.StartArray();
-          for (auto& rm : relation.members()) {
-            relationWriter.StartObject();
-            relationWriter.String("role");
-            relationWriter.String(string(rm.role()));
-            relationWriter.String("type");
-            relationWriter.String(string(osmium::item_type_to_name(rm.type())));
-            relationWriter.String("ref");
-            relationWriter.String(to_string(rm.ref()));
-            relationWriter.EndObject();
-          }
-          relationWriter.EndArray();
-          relationWriter.EndObject();
-
-          //cout << relationBuffer.GetString() << endl;
         }
+      }
+      pair<int,unordered_set<string>> relationIndex(id, tiles);
+      indices.insert(relationIndex);
+      relationWriter.EndArray();
+
+      relationWriter.Key("tags");
+      relationWriter.StartObject();
+      for (auto& tag : tags) {
+        relationWriter.Key(tag.key());
+        relationWriter.String(tag.value());
+      }
+      relationWriter.EndObject();
+      relationWriter.EndObject();
+
+      for (auto& tileXy : tiles) {
+        appendData(tileXy, relationBuffer.GetString());
       }
     }
 };
