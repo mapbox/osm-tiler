@@ -12,14 +12,13 @@
 #include <sys/stat.h>
 #include <boost/filesystem.hpp>
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace rapidjson;
 using namespace std;
 
 static const auto decimal_to_radian = M_PI / 180;
 static const string output_directory = "output";
-
-typedef vector<string> TileVector;  
 
 struct Tile {
   uint x;
@@ -29,7 +28,7 @@ struct Tile {
 
 class Handler : public osmium::handler::Handler {
   uint z;
-  unordered_map<int,vector<string>> idx;
+  unordered_map<int,unordered_set<string>> indices;
 
   public:
     Handler(uint tileZ) {
@@ -48,20 +47,19 @@ class Handler : public osmium::handler::Handler {
       return tile;
     }
 
-    string xy (const double lon, const double lat) {
-      auto tile = pointToTile(lon, lat);
+    string xy (const Tile tile) {
       return to_string(tile.x) + "/" + to_string(tile.y);
     }
 
-    int makeDirectoryForTile(const Tile &tile) {
+    int mkdirTile(const Tile &tile) {
       string curPath = "output";
-      mkdir( curPath.c_str(), 0777); 
+      mkdir(curPath.c_str(), 0777); 
 
       curPath += "/" +  to_string(tile.x);
-      mkdir( curPath.c_str(), 0777);
+      mkdir(curPath.c_str(), 0777);
       
       curPath += "/" +  to_string(tile.y);
-      mkdir( curPath.c_str(), 0777); 
+      mkdir(curPath.c_str(), 0777); 
 
       return true;
     }
@@ -71,10 +69,14 @@ class Handler : public osmium::handler::Handler {
       auto lon = node.location().lon();
       auto lat = node.location().lat();
       auto id = node.id();
-      TileVector tiles = {string(xy(lon, lat))};
 
-      pair<int,TileVector> nodeIndex(id, tiles);
-      idx.insert(nodeIndex);
+      Tile tile = pointToTile(lon, lat);
+      mkdirTile(tile);
+      unordered_set<string> tiles;
+      tiles.insert(xy(tile));
+      pair<int, unordered_set<string>> nodeIndex(id, tiles);
+
+      indices.insert(nodeIndex);
 
       StringBuffer nodeBuffer;
       Writer<StringBuffer> nodeWriter(nodeBuffer);
@@ -128,9 +130,23 @@ class Handler : public osmium::handler::Handler {
 
       wayWriter.Key("node_refs");
       wayWriter.StartArray();
+      unordered_set<string> tiles;
+      int tileCount = 0;
       for (auto& node : way.nodes()) {
-        wayWriter.Int(node.ref());
+        int ref = node.ref();
+        wayWriter.Int(ref);
+
+        if(indices.count(ref)) {
+          auto nodeTiles = indices.at(ref);
+          
+          for (auto& tile : nodeTiles) {
+            tiles.insert(tile);
+            tileCount++;
+          }
+        }
       }
+      pair<int,unordered_set<string>> wayIndex(id, tiles);
+      indices.insert(wayIndex);
       wayWriter.EndArray();
 
       wayWriter.Key("tags");
@@ -165,16 +181,30 @@ class Handler : public osmium::handler::Handler {
 
       relationWriter.Key("members");
       relationWriter.StartArray();
+      unordered_set<string> tiles;
+      int tileCount = 0;
       for (auto& member : relation.members()) {
+        auto ref = member.ref();
         relationWriter.StartObject();
         relationWriter.Key("id");
-        relationWriter.Int(member.ref());
+        relationWriter.Int(ref);
         relationWriter.Key("type");
         relationWriter.String(item_type_to_name(member.type()));
         relationWriter.Key("role");
         relationWriter.String(member.role());
         relationWriter.EndObject();
+
+        if(indices.count(ref)) {
+          auto memberTiles = indices.at(ref);
+          
+          for (auto& tile : memberTiles) {
+            tiles.insert(tile);
+            tileCount++;
+          }
+        }
       }
+      pair<int,unordered_set<string>> relationIndex(id, tiles);
+      indices.insert(relationIndex);
       relationWriter.EndArray();
 
       relationWriter.Key("tags");
