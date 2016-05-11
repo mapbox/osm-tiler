@@ -22,7 +22,8 @@ int main(int argc, char** argv) {
     desc.add_options()
     ("help,h", "show help")
     ("version,v", "show version number")
-    ("zoom,z", value<uint>(), "zoom level of tiles");
+    ("zoom,z", value<uint>(), "zoom level of tiles")
+    ("output,o", value<string>(), "output directory");;
 
     variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
@@ -33,8 +34,18 @@ int main(int argc, char** argv) {
       cout << VERSION;
     } else {
       uint zoom = 0;
+      string output;
 
       if(vm.count("zoom")) zoom = vm["zoom"].as<uint>();
+      else {
+        cout << "Error: A zoom level is required" << endl;
+        return 1;
+      }
+      if(vm.count("output")) output = vm["output"].as<string>();
+      else {
+        cout << "Error: An output directory is required" << endl;
+        return 1;
+      }
 
       std::string filename = argv[1];
 
@@ -43,7 +54,7 @@ int main(int argc, char** argv) {
         osmium::osm_entity_bits::relation | osmium::osm_entity_bits::node | osmium::osm_entity_bits::way
       );
 
-      Handler handler(zoom);
+      Handler handler(zoom, output);
       osmium::apply(reader, handler);
       reader.close();
 

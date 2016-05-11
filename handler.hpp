@@ -23,11 +23,13 @@ struct Tile {
 
 class Handler : public osmium::handler::Handler {
   uint z;
+  string output;
   unordered_map<int,unordered_set<string>> indices;
 
   public:
-    Handler(uint tileZ) {
+    Handler(uint tileZ, string outputFlag) {
       z = tileZ;
+      output = outputFlag;
     }
 
     Tile pointToTile(const double lon, const double lat) {
@@ -47,19 +49,18 @@ class Handler : public osmium::handler::Handler {
     }
 
     void mkdirTile(const Tile &tile) {
-      string curPath = "output";
-      mkdir(curPath.c_str(), 0777); 
+      mkdir(output.c_str(), 0777); 
 
-      curPath += "/" +  to_string(tile.x);
-      mkdir(curPath.c_str(), 0777);
+      output += "/" +  to_string(tile.x);
+      mkdir(output.c_str(), 0777);
       
-      curPath += "/" +  to_string(tile.y);
-      mkdir(curPath.c_str(), 0777); 
+      output += "/" +  to_string(tile.y);
+      mkdir(output.c_str(), 0777); 
     }
 
     void appendData(const string &tilePath, const string data) {
       string filename = "data.json";
-      string path = "./output/" + tilePath + "/" + filename;
+      string path = output + "/" + tilePath + "/" + filename;
 
       ofstream myfile;
       myfile.open(path, ios::app);
