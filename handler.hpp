@@ -143,7 +143,7 @@ class Handler : public osmium::handler::Handler {
         wayWriter.Int(ref);
 
         if(indices.count(ref)) {
-          auto nodeTiles = indices.at(ref);
+          const auto & nodeTiles = indices.at(ref);
           
           for (auto & tile : nodeTiles) {
             tiles.insert(tile);
@@ -205,9 +205,9 @@ class Handler : public osmium::handler::Handler {
         relationWriter.EndObject();
 
         if(indices.count(ref)) {
-          const auto memberTiles = indices.at(ref);
+          const auto & memberTiles = indices.at(ref);
           
-          for (auto & tile : memberTiles) {
+          for (const auto & tile : memberTiles) {
             tiles.insert(tile);
             tileCount++;
           }
