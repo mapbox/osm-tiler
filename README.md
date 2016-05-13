@@ -1,5 +1,7 @@
 # osm-tiler
 
+[![Build Status](https://travis-ci.org/mapbox/osm-tiler.svg?branch=master)](https://travis-ci.org/mapbox/osm-tiler)
+
 osm-tiler is an [.osm.pbf](http://wiki.openstreetmap.org/wiki/PBF_Format) tiler for efficiently breaking [OpenStreetMap planet files](http://planet.openstreetmap.org/) into smaller chunks. It is ideal for distributed processing of OpenStreetMap data, since it groups spatially related data into separate files that do not need to be loaded into memory at once.
 
 ### Use
