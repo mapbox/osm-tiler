@@ -1,9 +1,28 @@
-CXX := $(CXX)
-CXXFLAGS := -fvisibility=hidden -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wlong-long -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
-LDFLAGS := -lz -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+BUILDTYPE ?= Release
 
-osm-tiler: clean
-	. ./bootstrap.sh && $(CXX) osm-tiler.cpp -o osm-tiler -std=c++11 $(CXXFLAGS) $(LDFLAGS);
+CXX := $(CXX)
+CXXFLAGS := $(CXXFLAGS) -std=c++11 -fvisibility=hidden
+LDFLAGS := $(LDFLAGS) -lz -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+WARNING_FLAGS := -Wall -Wextra -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wlong-long -Wmissing-declarations -Wredundant-decls -Wshadow -Woverloaded-virtual
+
+MASON_HOME := ./mason_packages/.link
+
+RELEASE_FLAGS := -O3 -DNDEBUG
+DEBUG_FLAGS := -O0 -DDEBUG -fno-inline-functions -fno-omit-frame-pointer
+
+ifeq ($(BUILDTYPE),Release)
+	FINAL_FLAGS := -g $(WARNING_FLAGS) $(RELEASE_FLAGS)
+else
+	FINAL_FLAGS := -g $(WARNING_FLAGS) $(DEBUG_FLAGS)
+endif
+
+all: osm-tiler
+
+mason_packages:
+	./bootstrap.sh
+
+osm-tiler: clean mason_packages
+	$(CXX) osm-tiler.cpp -o osm-tiler -I$(MASON_HOME)/include -L$(MASON_HOME)/lib $(CXXFLAGS) $(FINAL_FLAGS) $(LDFLAGS);
 
 chs.osm.pbf:
 	curl https://s3.amazonaws.com/metro-extracts.mapzen.com/charleston_south-carolina.osm.pbf -o chs.osm.pbf

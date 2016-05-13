@@ -28,12 +28,7 @@ function setup_mason() {
     (cd ./.mason && git fetch > /dev/null 2>&1 && git checkout ${MASON_VERSION} > /dev/null 2>&1)
   fi
 
-  wd=$(pwd)
-  export MASON_DIR=${wd}/.mason
-  export MASON_HOME=${wd}/mason_packages/.link
-  export PATH=${wd}/.mason:$PATH
-  export CXX=${CXX:-clang++}
-  export CC=${CC:-clang}
+  export MASON_DIR=$(pwd)/.mason
 }
 
 function main() {
@@ -42,12 +37,6 @@ function main() {
   if [[ ! -d ${MASON_HOME} ]]; then
     all_deps
   fi
-
-  export C_INCLUDE_PATH="${MASON_HOME}/include"
-  export CPLUS_INCLUDE_PATH="${MASON_HOME}/include"
-  export CXXFLAGS="-I${MASON_HOME}/include"
-  export LIBRARY_PATH="${MASON_HOME}/lib"
-  export LDFLAGS="-L${MASON_HOME}/lib"
 }
 
 main

@@ -1,0 +1,39 @@
+language: generic
+
+sudo: false
+
+addons_shortcuts:
+  addons_clang35: &clang35
+    apt:
+      sources: [ 'ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.5' ]
+      packages: [ 'clang-3.5', 'llvm-3.5-dev' ]
+  addons_gcc49: &gcc5
+    apt:
+      sources: [ 'ubuntu-toolchain-r-test' ]
+      packages: [ 'g++-5' ]
+
+matrix:
+  include:
+    - os: linux
+      compiler: "clang35"
+      env: CXX=clang++-3.5 BUILDTYPE=Release
+      addons: *clang35
+    - os: linux
+      compiler: "clang35"
+      env: CXX=clang++-3.5 BUILDTYPE=Debug CXXFLAGS="-fsanitize=address" LDFLAGS="-fsanitize=address"
+      addons: *clang35
+    - os: linux
+      compiler: "clang35"
+      env: CXX=clang++-3.5 BUILDTYPE=Debug CXXFLAGS="-fsanitize=integer" LDFLAGS="-fsanitize=integer"
+      addons: *clang35
+    - os: linux
+      compiler: "gcc5"
+      env: CXX=g++-5 BUILDTYPE=Release
+      addons: *gcc5
+
+install:
+ - BUILDTYPE=${BUILDTYPE} make
+
+#script:
+ # take too long, needs smaller data for travis
+ #- BUILDTYPE=${BUILDTYPE} make test
