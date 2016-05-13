@@ -30,10 +30,9 @@ class Handler : public osmium::handler::Handler {
   unordered_map<int,unordered_set<string>> indices;
 
   public:
-    Handler(const uint tileZ, const string & outputFlag) {
-      z = tileZ;
-      output = outputFlag;
-    }
+    Handler(const uint tileZ, const string & outputFlag) :
+      z(tileZ),
+      output(outputFlag) {}
 
     Tile pointToTile(const double lon, const double lat) {
       auto tile = Tile();
