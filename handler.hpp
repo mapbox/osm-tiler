@@ -58,11 +58,10 @@ class Handler : public osmium::handler::Handler {
     }
 
     void appendData(const string & tilePath, const string & data) {
-      string filename = "data.json";
-      string path = output + "/" + tilePath + "/" + filename;
-
+      std::ostringstream path;
+      path << output << "/" << tilePath << "/data.json";
       ofstream myfile;
-      myfile.open(path, ios::app);
+      myfile.open(path.str(), ios::app);
       myfile << data << endl;
       myfile.close();
     }
