@@ -27,7 +27,7 @@ class Handler : public osmium::handler::Handler {
   unordered_map<int,unordered_set<string>> indices;
 
   public:
-    Handler(uint tileZ, string outputFlag) {
+    Handler(const uint tileZ, const string & outputFlag) {
       z = tileZ;
       output = outputFlag;
     }
@@ -44,21 +44,23 @@ class Handler : public osmium::handler::Handler {
       return tile;
     }
 
-    string xy (const Tile tile) {
+    string xy (const Tile & tile) {
       return to_string(tile.x) + "/" + to_string(tile.y);
     }
 
-    void mkdirTile(const Tile &tile) {
-      mkdir(output.c_str(), 0777); 
+    void mkdirTile(const Tile & tile) {
+      string path = output;
 
-      output += "/" +  to_string(tile.x);
-      mkdir(output.c_str(), 0777);
+      mkdir(path.c_str(), 0777); 
+
+      path += "/" +  to_string(tile.x);
+      mkdir(path.c_str(), 0777);
       
-      output += "/" +  to_string(tile.y);
-      mkdir(output.c_str(), 0777); 
+      path += "/" +  to_string(tile.y);
+      mkdir(path.c_str(), 0777); 
     }
 
-    void appendData(const string &tilePath, const string data) {
+    void appendData(const string & tilePath, const string & data) {
       string filename = "data.json";
       string path = output + "/" + tilePath + "/" + filename;
 
@@ -68,8 +70,8 @@ class Handler : public osmium::handler::Handler {
       myfile.close();
     }
 
-    void node(const osmium::Node& node) {
-      auto const& tags = node.tags();
+    void node(const osmium::Node & node) {
+      const auto & tags = node.tags();
       auto lon = node.location().lon();
       auto lat = node.location().lat();
       auto id = node.id();
@@ -104,7 +106,7 @@ class Handler : public osmium::handler::Handler {
 
       nodeWriter.Key("tags");
       nodeWriter.StartObject();
-      for (auto& tag : tags) {
+      for (const auto & tag : tags) {
         nodeWriter.Key(tag.key());
         nodeWriter.String(tag.value());
       }
@@ -114,9 +116,9 @@ class Handler : public osmium::handler::Handler {
       appendData(xy(tile), nodeBuffer.GetString());
     }
 
-    void way(const osmium::Way& way) {
-      auto const& tags = way.tags();
-      auto id = way.id();
+    void way(const osmium::Way & way) {
+      const auto & tags = way.tags();
+      const auto id = way.id();
 
       StringBuffer wayBuffer;
       Writer<StringBuffer> wayWriter(wayBuffer);
@@ -140,14 +142,14 @@ class Handler : public osmium::handler::Handler {
       wayWriter.StartArray();
       unordered_set<string> tiles;
       int tileCount = 0;
-      for (auto& node : way.nodes()) {
+      for (const auto & node : way.nodes()) {
         int ref = node.ref();
         wayWriter.Int(ref);
 
         if(indices.count(ref)) {
           auto nodeTiles = indices.at(ref);
           
-          for (auto& tile : nodeTiles) {
+          for (auto & tile : nodeTiles) {
             tiles.insert(tile);
             tileCount++;
           }
@@ -159,21 +161,21 @@ class Handler : public osmium::handler::Handler {
 
       wayWriter.Key("tags");
       wayWriter.StartObject();
-      for (auto& tag : tags) {
+      for (const auto & tag : tags) {
         wayWriter.Key(tag.key());
         wayWriter.String(tag.value());
       }
       wayWriter.EndObject();
       wayWriter.EndObject();
 
-      for (auto& tileXy : tiles) {
+      for (const auto & tileXy : tiles) {
         appendData(tileXy, wayBuffer.GetString());
       }
     }
 
-    void relation(const osmium::Relation& relation) {
-      auto const& tags = relation.tags();
-      auto id = relation.id();
+    void relation(const osmium::Relation & relation) {
+      const auto & tags = relation.tags();
+      const auto id = relation.id();
 
       StringBuffer relationBuffer;
       Writer<StringBuffer> relationWriter(relationBuffer);
@@ -195,8 +197,8 @@ class Handler : public osmium::handler::Handler {
       relationWriter.StartArray();
       unordered_set<string> tiles;
       int tileCount = 0;
-      for (auto& member : relation.members()) {
-        auto ref = member.ref();
+      for (const auto & member : relation.members()) {
+        const auto ref = member.ref();
         relationWriter.StartObject();
         relationWriter.Key("id");
         relationWriter.Int(ref);
@@ -207,9 +209,9 @@ class Handler : public osmium::handler::Handler {
         relationWriter.EndObject();
 
         if(indices.count(ref)) {
-          auto memberTiles = indices.at(ref);
+          const auto memberTiles = indices.at(ref);
           
-          for (auto& tile : memberTiles) {
+          for (auto & tile : memberTiles) {
             tiles.insert(tile);
             tileCount++;
           }
@@ -221,14 +223,14 @@ class Handler : public osmium::handler::Handler {
 
       relationWriter.Key("tags");
       relationWriter.StartObject();
-      for (auto& tag : tags) {
+      for (const auto & tag : tags) {
         relationWriter.Key(tag.key());
         relationWriter.String(tag.value());
       }
       relationWriter.EndObject();
       relationWriter.EndObject();
 
-      for (auto& tileXy : tiles) {
+      for (const auto & tileXy : tiles) {
         appendData(tileXy, relationBuffer.GetString());
       }
     }
