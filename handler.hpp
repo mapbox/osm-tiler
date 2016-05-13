@@ -25,8 +25,8 @@ struct Tile {
 };
 
 class Handler : public osmium::handler::Handler {
-  uint z;
-  string output;
+  const uint z;
+  const string output;
   unordered_map<int,unordered_set<string>> indices;
 
   public:
