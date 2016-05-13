@@ -34,6 +34,9 @@ matrix:
 install:
  - BUILDTYPE=${BUILDTYPE} make
 
+notifications:
+  slack: mapbox:lrdz9lrDpe0A06EvfkDWiZrD
+
 #script:
  # take too long, needs smaller data for travis
  #- BUILDTYPE=${BUILDTYPE} make test

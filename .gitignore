@@ -41,3 +41,4 @@ node-cache
 mason_packages/
 
 output
+osm-tiler.dSYM
