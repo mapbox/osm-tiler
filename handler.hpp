@@ -13,6 +13,8 @@
 using namespace rapidjson;
 using namespace std;
 
+namespace fs = boost::filesystem;
+
 static const auto decimal_to_radian = M_PI / 180;
 
 struct Tile {
@@ -49,15 +51,9 @@ class Handler : public osmium::handler::Handler {
     }
 
     void mkdirTile(const Tile & tile) {
-      string path = output;
-
-      mkdir(path.c_str(), 0777); 
-
-      path += "/" +  to_string(tile.x);
-      mkdir(path.c_str(), 0777);
-      
-      path += "/" +  to_string(tile.y);
-      mkdir(path.c_str(), 0777); 
+      std::ostringstream s;
+      s << output << "/" << tile.x << "/" << tile.y;
+      fs::create_directories(s.str());
     }
 
     void appendData(const string & tilePath, const string & data) {
