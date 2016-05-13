@@ -9,6 +9,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <cmath>
 
 using namespace rapidjson;
 using namespace std;
@@ -37,10 +38,10 @@ class Handler : public osmium::handler::Handler {
     Tile pointToTile(const double lon, const double lat) {
       auto tile = Tile();
 
-      auto latSin = sin(lat * decimal_to_radian);
-      auto z2 = pow(2, z);
-      tile.x = floor(z2 * (lon / 360 + 0.5));
-      tile.y = floor(z2 * (0.5 - 0.25 * log((1 + latSin) / (1 - latSin)) / M_PI));
+      auto latSin = std::sin(lat * decimal_to_radian);
+      auto z2 = std::pow(2, z);
+      tile.x = std::floor(z2 * (lon / 360 + 0.5));
+      tile.y = std::floor(z2 * (0.5 - 0.25 * std::log((1 + latSin) / (1 - latSin)) / M_PI));
       tile.z = z;
 
       return tile;
