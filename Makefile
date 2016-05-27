@@ -22,13 +22,13 @@ mason_packages:
 	./bootstrap.sh
 
 osm-tiler: mason_packages handler.hpp osm-tiler.cpp
-	$(CXX) osm-tiler.cpp -o osm-tiler -I$(MASON_HOME)/include -L$(MASON_HOME)/lib $(CXXFLAGS) $(FINAL_FLAGS) $(LDFLAGS);
+	$(CXX) osm-tiler.cpp -o osm-tiler -isystem$(MASON_HOME)/include -L$(MASON_HOME)/lib $(CXXFLAGS) $(FINAL_FLAGS) $(LDFLAGS);
 
 chs.osm.pbf:
 	curl https://s3.amazonaws.com/metro-extracts.mapzen.com/charleston_south-carolina.osm.pbf -o chs.osm.pbf
 
 test: chs.osm.pbf osm-tiler
-	./osm-tiler chs.osm.pbf -z 9 -o ./output;
+	./osm-tiler -z 9 -o ./output chs.osm.pbf;
 
 clean:
 	rm -f osm-tiler; rm -rf output; mkdir output;

@@ -23,10 +23,15 @@ int main(int argc, char** argv) {
     ("help,h", "show help")
     ("version,v", "show version number")
     ("zoom,z", value<uint>(), "zoom level of tiles")
-    ("output,o", value<string>(), "output directory");;
+    ("input,i", value<string>(), "input OpenStreetMap file")
+    ("output,o", value<string>(), "output directory");
 
+    positional_options_description p;
+    p.add("input", 1);
     variables_map vm;
-    store(parse_command_line(argc, argv, desc), vm);
+
+    auto parser = command_line_parser(argc, argv).options(desc).positional(p);
+    store(parser.run(), vm);
 
     if(vm.count("help")) {
       cout << desc;
@@ -35,22 +40,28 @@ int main(int argc, char** argv) {
     } else {
       uint zoom = 0;
       string output;
+      string input;
 
       if(vm.count("zoom")) zoom = vm["zoom"].as<uint>();
       else {
         cout << "Error: A zoom level is required" << endl;
         return 1;
       }
+
       if(vm.count("output")) output = vm["output"].as<string>();
       else {
         cout << "Error: An output directory is required" << endl;
         return 1;
       }
 
-      std::string filename = argv[1];
+      if(vm.count("input")) input = vm["input"].as<string>();
+      else {
+        cout << "Error: An OpenStreetMap input file is required" << endl;
+        return 1;
+      }
 
       osmium::io::Reader reader(
-        filename,
+        input,
         osmium::osm_entity_bits::relation | osmium::osm_entity_bits::node | osmium::osm_entity_bits::way
       );
 
