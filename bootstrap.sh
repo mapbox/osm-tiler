@@ -15,10 +15,11 @@ function all_deps() {
   dep protozero 1.3.0 &
   dep utfcpp 2.3.4 &
   dep zlib system &
+  dep leveldb 1.18
   wait
 }
 
-MASON_VERSION=061cbd85bc4fbf4cd1ea204ddd4ddfd6d05328ee
+MASON_VERSION=33d7b1139f7fd8d66f141160ad37f926b772d6b5
 
 function setup_mason() {
   if [[ ! -d ./.mason ]]; then

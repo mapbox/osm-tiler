@@ -34,4 +34,4 @@ clean:
 	rm -f osm-tiler; rm -rf output; mkdir output;
 
 clean-mason:
-	rm -rf ./mason_packages;
+	rm -rf ./mason_packages; rm -rf ./mason;
