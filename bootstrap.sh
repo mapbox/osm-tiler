@@ -8,9 +8,11 @@ function dep() {
 }
 
 function all_deps() {
-  dep boost 1.59.0 &
-  dep boost_liball 1.59.0 &
-  dep libosmium 2.6.1 &
+  dep boost 1.61.0 &
+  dep boost_libfilesystem 1.61.0 &
+  dep boost_libsystem 1.61.0 &
+  dep boost_libprogram_options 1.61.0 &
+  dep libosmium 2.7.2 &
   dep rapidjson 1.0.2 &
   dep protozero 1.3.0 &
   dep utfcpp 2.3.4 &
@@ -18,17 +20,15 @@ function all_deps() {
   wait
 }
 
-MASON_VERSION=061cbd85bc4fbf4cd1ea204ddd4ddfd6d05328ee
+MASON_VERSION=master
 
 function setup_mason() {
   if [[ ! -d ./.mason ]]; then
     git clone https://github.com/mapbox/mason.git ./.mason
     (cd ./.mason && git checkout ${MASON_VERSION})
   else
-    (cd ./.mason && git fetch > /dev/null 2>&1 && git checkout ${MASON_VERSION} > /dev/null 2>&1)
+    (cd ./.mason && git fetch > /dev/null 2>&1 && git checkout ${MASON_VERSION} > /dev/null 2>&1 && git pull)
   fi
-
-  export MASON_DIR=$(pwd)/.mason
 }
 
 function main() {
